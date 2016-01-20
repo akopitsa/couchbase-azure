@@ -71,7 +71,7 @@ PASSWORD=""
 # Minimum VM size we are assuming is A2, which has 3.5GB, 2800MB is about 80% as recommended
 RAM_FOR_COUCHBASE=0
 IS_LAST_NODE=0
-RAM_FOR_COUCHBASE_INDEX=256
+#RAM_FOR_COUCHBASE_INDEX=256
 
 #Process the received arguments
 while getopts d:n:i:a:p:r:l optname; do
@@ -177,9 +177,9 @@ if [ "$IS_LAST_NODE" -eq 1 ]; then
 	sleep 5m
 
 	log "Initializing the first node of the cluster on ${MY_IP}."
-	/opt/couchbase/bin/couchbase-cli node-init -c "$MY_IP":8091 -u "${ADMINISTRATOR}" -p "${PASSWORD}" --node-init-data-path="${COUCHBASE_DATA}" --node-init-index-path="${COUCHBASE_DATA}" --node-init-hostname="${COUCHBASE_DATA}"
+	/opt/couchbase/bin/couchbase-cli node-init -c "$MY_IP":8091 -u "${ADMINISTRATOR}" -p "${PASSWORD}" --node-init-data-path="${COUCHBASE_DATA}" --node-init-index-path="${COUCHBASE_DATA}"
 	log "Setting up cluster"
-	/opt/couchbase/bin/couchbase-cli cluster-init -c "$MY_IP":8091  -u "${ADMINISTRATOR}" -p "${PASSWORD}" --cluster-init-ramsize="${RAM_FOR_COUCHBASE}" --cluster-index-ramsize="${RAM_FOR_COUCHBASE_INDEX}" --cluster-port=8091 --cluster-ramsize="${RAM_FOR_COUCHBASE}" --services=data,index,query
+	/opt/couchbase/bin/couchbase-cli cluster-init -c "$MY_IP":8091  -u "${ADMINISTRATOR}" -p "${PASSWORD}" --cluster-ramsize="${RAM_FOR_COUCHBASE}" --cluster-index-ramsize=256 --services=data,index,query
     log "Setting autofailover"
 	/opt/couchbase/bin/couchbase-cli setting-autofailover  -c "$MY_IP":8091  -u "${ADMINISTRATOR}" -p "${PASSWORD}" --enable-auto-failover=1 --auto-failover-timeout=30
 
