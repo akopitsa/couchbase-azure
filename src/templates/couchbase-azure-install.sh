@@ -56,7 +56,7 @@ else
 fi
 
 #Script Parameters
-PACKAGE_NAME="couchbase-server-enterprise_3.0.3-ubuntu12.04_amd64.deb"
+PACKAGE_NAME=""
 CLUSTER_NAME=""
 IP_LIST=""
 ADMINISTRATOR=""
@@ -64,6 +64,7 @@ PASSWORD=""
 # Minimum VM size we are assuming is A2, which has 3.5GB, 2800MB is about 80% as recommended
 RAM_FOR_COUCHBASE=0
 IS_LAST_NODE=0
+RAM_FOR_COUCHBASE_INDEX=256
 
 #Process the received arguments
 while getopts d:n:i:a:p:r:l optname; do
@@ -169,15 +170,15 @@ if [ "$IS_LAST_NODE" -eq 1 ]; then
 	sleep 4m
 
 	log "Initializing the first node of the cluster on ${MY_IP}."
-	/opt/couchbase/bin/couchbase-cli node-init -c "$MY_IP":8091 --node-init-data-path="${COUCHBASE_DATA}" -u "${ADMINISTRATOR}" -p "${PASSWORD}"
+	/opt/couchbase/bin/couchbase-cli node-init -c "$MY_IP":8091 -u "${ADMINISTRATOR}" -p "${PASSWORD}" --node-init-data-path="${COUCHBASE_DATA}" --node-init-index-path="${COUCHBASE_DATA}" --node-init-hostname="${COUCHBASE_DATA}"
 	log "Setting up cluster"
-	/opt/couchbase/bin/couchbase-cli cluster-init -c "$MY_IP":8091  -u "${ADMINISTRATOR}" -p "${PASSWORD}" --cluster-init-port=8091 --cluster-init-ramsize="${RAM_FOR_COUCHBASE}"
-	log "Setting autofailover"
+	/opt/couchbase/bin/couchbase-cli cluster-init -c "$MY_IP":8091  -u "${ADMINISTRATOR}" -p "${PASSWORD}" --cluster-init-ramsize="${RAM_FOR_COUCHBASE}" --cluster-index-ramsize="${RAM_FOR_COUCHBASE_INDEX}" --cluster-port=8091 --cluster-ramsize="${RAM_FOR_COUCHBASE}" --services=data,index,query
+    log "Setting autofailover"
 	/opt/couchbase/bin/couchbase-cli setting-autofailover  -c "$MY_IP":8091  -u "${ADMINISTRATOR}" -p "${PASSWORD}" --enable-auto-failover=1 --auto-failover-timeout=30
 
 	for (( i = 0; i < ${#MEMBER_IP_ADDRESSES[@]}; i++ )); do
 		log "Adding node ${MEMBER_IP_ADDRESSES[$i]} to cluster"
-		/opt/couchbase/bin/couchbase-cli server-add -c "$MY_IP":8091 -u "${ADMINISTRATOR}" -p "${PASSWORD}" --server-add="${MEMBER_IP_ADDRESSES[$i]}" 
+		/opt/couchbase/bin/couchbase-cli server-add -c "$MY_IP":8091 -u "${ADMINISTRATOR}" -p "${PASSWORD}" --server-add="${MEMBER_IP_ADDRESSES[$i]}" --services=data,index,query
 	done
 
 	log "Reblancing the cluster"

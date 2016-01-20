@@ -1,7 +1,7 @@
 # azure cli commands
 
 #login
-azure login
+#azure login
 
 # set account to use
 azure account set "Azure Pass"
