@@ -28,6 +28,13 @@
 ###          This script is not currently idempotent and only works for provisioning
 ###
 
+###
+### Couchbase Documentation!
+###
+### link to cli commands: http://developer.couchbase.com/documentation/server/4.1/cli/cbcli-intro.html
+###
+###
+
 # Log method to control/redirect log output
 log()
 {    
@@ -166,8 +173,8 @@ done
 
 log "Is last node? ${IS_LAST_NODE}"
 if [ "$IS_LAST_NODE" -eq 1 ]; then
-	log "sleep for 4 minutes to wait for the environment to stabilize"
-	sleep 4m
+	log "sleep for 5 minutes to wait for the environment to stabilize"
+	sleep 5m
 
 	log "Initializing the first node of the cluster on ${MY_IP}."
 	/opt/couchbase/bin/couchbase-cli node-init -c "$MY_IP":8091 -u "${ADMINISTRATOR}" -p "${PASSWORD}" --node-init-data-path="${COUCHBASE_DATA}" --node-init-index-path="${COUCHBASE_DATA}" --node-init-hostname="${COUCHBASE_DATA}"
