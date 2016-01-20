@@ -76,7 +76,7 @@
     },
     "cbPackage": {
       "type": "string",
-      "defaultValue": "couchbase-server-enterprise_4.1.0-ubuntu12.04_amd64.deb,
+      "defaultValue": "couchbase-server-enterprise_4.1.0-ubuntu12.04_amd64.deb",
       "metadata": {
         "description": "Couchbase package to install"
       }
