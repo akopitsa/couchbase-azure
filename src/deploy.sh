@@ -4,28 +4,37 @@
 ###
 ###
 
+#VARIABLES
+
+AZURE_ACCOUNT="Azure Pass"
+AZURE_DEPLOYMENT_NAME="cb-deployment"
+AZURE_RESOURCE_GROUP_NAME="cb-group"
+AZURE_LOCATION="West US"
+
 #login
 #azure login
 
 # set account to use
-azure account set "Azure Pass"
+azure account set "$AZURE_ACCOUNT"
 
 # set cli to use ARM template mode
 azure config mode arm
 
 #delete deplyment/reset azure:
-azure group deployment stop cb-group -n "azure-cb-deployment"
-azure group deployment delete cb-group -n "azure-cb-deployment"
-azure group delete cb-group
+azure group deployment stop   $AZURE_RESOURCE_GROUP_NAME -n $AZURE_DEPLOYMENT_NAME 
+azure group deployment delete $AZURE_RESOURCE_GROUP_NAME -n $AZURE_DEPLOYMENT_NAME 
+azure group delete $AZURE_RESOURCE_GROUP_NAME
 
 # create resource group and set location for Resource Group
-azure group create -n "cb-group" -l "West US"
+azure group create -n $AZURE_RESOURCE_GROUP_NAME -l "$AZURE_LOCATION"
 
 #create deployment and wait for success
-azure group deployment create --template-uri https://raw.githubusercontent.com/martinesmann/couchbase-azure/master/src/templates/azuredeploy.json -e templates/azuredeploy.parameters.json cb-group azure-cb-deployment
+azure group deployment create --template-uri https://raw.githubusercontent.com/martinesmann/couchbase-azure/master/src/templates/azuredeploy.json \
+    -e templates/azuredeploy.parameters.json \
+    $AZURE_RESOURCE_GROUP_NAME $AZURE_DEPLOYMENT_NAME
 
 #get public ip for resource group
-azure network public-ip list "cb-group"
+azure network public-ip list $AZURE_RESOURCE_GROUP_NAME
 
 #tunnel test/ jump box tunneling
 #ssh -D 8080 -C -N couchadmin@23.97.70.248

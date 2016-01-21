@@ -173,8 +173,8 @@ done
 
 log "Is last node? ${IS_LAST_NODE}"
 if [ "$IS_LAST_NODE" -eq 1 ]; then
-	log "sleep for 5 minutes to wait for the environment to stabilize"
-	sleep 5m
+	log "sleep for 4 minutes to wait for the environment to stabilize"
+	sleep 4m
 
 	log "Initializing the first node of the cluster on ${MY_IP}."
 	/opt/couchbase/bin/couchbase-cli node-init -c "$MY_IP":8091 -u "${ADMINISTRATOR}" -p "${PASSWORD}" --node-init-data-path="${COUCHBASE_DATA}" --node-init-index-path="${COUCHBASE_DATA}"
@@ -185,7 +185,7 @@ if [ "$IS_LAST_NODE" -eq 1 ]; then
 
 	for (( i = 0; i < ${#MEMBER_IP_ADDRESSES[@]}; i++ )); do
 		log "Adding node ${MEMBER_IP_ADDRESSES[$i]} to cluster"
-		/opt/couchbase/bin/couchbase-cli server-add -c "$MY_IP":8091 -u "${ADMINISTRATOR}" -p "${PASSWORD}" --server-add="${MEMBER_IP_ADDRESSES[$i]}" --services=data,index,query
+		/opt/couchbase/bin/couchbase-cli server-add -c "$MY_IP":8091 -u "${ADMINISTRATOR}" -p "${PASSWORD}" --server-add="${MEMBER_IP_ADDRESSES[$i]}":8091 --server-add-username="${ADMINISTRATOR}" --server-add-password="${PASSWORD}" --services=data,index,query
 	done
 
 	log "Reblancing the cluster"
