@@ -21,9 +21,9 @@ azure account set "$AZURE_ACCOUNT"
 azure config mode arm
 
 #delete deplyment/reset azure:
-azure group deployment stop   $AZURE_RESOURCE_GROUP_NAME -n $AZURE_DEPLOYMENT_NAME 
-azure group deployment delete $AZURE_RESOURCE_GROUP_NAME -n $AZURE_DEPLOYMENT_NAME 
-azure group delete $AZURE_RESOURCE_GROUP_NAME
+yes y | azure group deployment stop   $AZURE_RESOURCE_GROUP_NAME -n $AZURE_DEPLOYMENT_NAME 
+yes y | azure group deployment delete $AZURE_RESOURCE_GROUP_NAME -n $AZURE_DEPLOYMENT_NAME 
+yes y | azure group delete $AZURE_RESOURCE_GROUP_NAME
 
 # create resource group and set location for Resource Group
 azure group create -n $AZURE_RESOURCE_GROUP_NAME -l "$AZURE_LOCATION"
