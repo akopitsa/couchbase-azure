@@ -6,7 +6,27 @@ You will need a few things to follow along and create your own Couchbase Cluster
 
 1. Azure Subscription
 2. Azure CLI, installed on your system
-3. Github account, optional if you would like to experiment with your own ARM templates. 
+3. Github account, optional if you would like to experiment with your own ARM templates.
+
+##Azure Resource Manager templates
+Azure Resource Manager allows you to provision applications to Microsoft Azure using a declarative template. With a single single template, you can deploy multiple services along with their dependencies. You also have the option to split up your ARM templates into multiple templates that each describe individual resources. You can use the same templates individually or separately to repeatedly deploy your application/resources during every stage of the application lifecycle.
+
+You can compare AMR templates to other resource description technologies like [chef.io](https://docs.chef.io/resource_template.html) or others.
+
+
+
+Here is an example of the most simple ARM template:
+
+```
+{
+   "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+   "contentVersion": "",
+   "parameters": {  },
+   "variables": {  },
+   "resources": [  ],
+   "outputs": {  }
+}
+``` 
 
 ##Azure CLI
 
