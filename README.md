@@ -48,15 +48,13 @@ azure group create -n CB_RESOURCE_GROUP -l "West US"
 ```
 ###Create a deployment and wait for success
 
-{% highlight ruby linenos %}
-
+```
 azure group deployment create \
 	--template-uri https://raw.githubusercontent.com/martinesmann/couchbase-azure/master/src/templates/azuredeploy.json \
     -e templates/azuredeploy.parameters.json \
     CB_RESOURCE_GROUP \
     AZURE_DEPLOYMENT
-    
-{% endhighlight %}
+```
 ###Public IP for Resource Group
 ```
 azure network public-ip list $AZURE_RESOURCE_GROUP_NAME
