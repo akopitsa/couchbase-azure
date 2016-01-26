@@ -8,6 +8,11 @@ This post is describing how to host your own Couchbase Cluster in Microsoft Azur
 2. Azure CLI, installed on your system, [how to install](https://azure.microsoft.com/en-us/documentation/articles/xplat-cli-install/). 
 3. [Github Account](https://github.com/), optional if you would like to experiment with your own ARM templates.
 
+##What you will deploy
+This blog post will walk you through the steps needed to deploy your own Couchbase 4.1 Cluster in Microsoft Azure. The size of the cluster is configurable but will as a minimum consist of a three node cluster set-up with replication to one node. You can also chose the data center location for Cluster between all available locations assessable with your Microsoft Azure subscription.   
+
+In the process of deploying Couchbase to Azure you will learn about Azure Resource Manager Templates and how to edit them to fit your needs. This will allow you to change default values in the Couchbase ARM template but also understand how to use ARM templates in other cases when using Microsoft Azure.
+
 ##Azure Resource Manager templates
 Azure Resource Manager allows you to provision applications to Microsoft Azure using a declarative template. With a single single template, you can deploy multiple services along with their dependencies. You also have the option to split up your ARM templates into multiple templates that each describe individual resources. You can use the same templates individually or separately to repeatedly deploy your application/resources during every stage of the application lifecycle.
 
@@ -76,6 +81,12 @@ The above ARM template snippet is taken from the [Couchbase Cluster ARM template
   
 
 ##Azure CLI
+The Azure CLI is a command line tool for working with Microsoft Azure build for Mac, Linux, and Windows. 
+
+If you have a Windows background and prefer working with [PowerShell](https://azure.microsoft.com/en-us/documentation/articles/powershell-azure-resource-manager/) then most of the commands works there as well. 
+
+I have chosen to use Azure CLI as it seems to have the wides audience and can be used on most platforms.
+
 
 
 ###Authentication
