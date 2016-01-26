@@ -2,18 +2,16 @@
 This blog post describes how to set up your own Couchbase Cluster using Azure Resource Manager templates, aka ARM templates.
 
 ##Prerequisites: 
-You will need a few things to follow along and create your own Couchbase Cluster in Azure.
+This post is describing how to host your own Couchbase Cluster in Microsoft Azure. If you would like to try this you will need a few things:
 
-1. Azure Subscription
-2. Azure CLI, installed on your system
-3. Github account, optional if you would like to experiment with your own ARM templates.
+1. Azure Subscription, sign-up here for a [free trial](https://azure.microsoft.com/en-us/pricing/free-trial).
+2. Azure CLI, installed on your system, [how to install](https://azure.microsoft.com/en-us/documentation/articles/xplat-cli-install/). 
+3. [Github Account](https://github.com/), optional if you would like to experiment with your own ARM templates.
 
 ##Azure Resource Manager templates
 Azure Resource Manager allows you to provision applications to Microsoft Azure using a declarative template. With a single single template, you can deploy multiple services along with their dependencies. You also have the option to split up your ARM templates into multiple templates that each describe individual resources. You can use the same templates individually or separately to repeatedly deploy your application/resources during every stage of the application lifecycle.
 
-You can compare AMR templates to other resource description technologies like [chef.io](https://docs.chef.io/resource_template.html) or others.
-
-
+You can compare ARM templates to other resource description technologies like [chef.io](https://docs.chef.io/resource_template.html) or others.
 
 Here is an example of the most simple ARM template:
 
@@ -28,7 +26,57 @@ Here is an example of the most simple ARM template:
 }
 ``` 
 
+ARM templates are written in JSON with the option to use some special formatted strings that can work as references to variables and or method calls. 
+
+The ARM template snippet below shows how to define a virtual network and the use of `variables` and `parameters` in an ARM template.
+
+```
+{
+      "apiVersion": "2015-05-01-preview",
+      "type": "Microsoft.Network/virtualNetworks",
+      "name": "[variables('virtualNetworkName')]",
+      "location": "[variables('location')]",
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": [
+            "[variables('addressPrefix')]"
+          ]
+        },
+        "subnets": [
+          {
+            "name": "[variables('subnetName')]",
+            "properties": {
+              "addressPrefix": "[variables('subnetPrefix')]"
+            }
+          }
+        ]
+      }
+    },
+```
+
+You can read more about how to author ARM templates from the Microsoft [Azure documentation](https://azure.microsoft.com/en-us/documentation/articles/resource-group-authoring-templates/). 
+
+It also possible to execute external code like shell scripts etc. to allow for custom configuration, installation on Virtual Machine as part of the set-up process.
+
+```
+ "vmScripts": {
+      "scriptsToDownload": [
+        "[concat(variables('templateBaseUrl'), 'couchbase-azure-install.sh')]",
+        "[concat(parameters('cbPackageDownloadBase'), parameters('cbPackage'))]",
+        "[concat(variables('templateBaseUrl'), 'vm-disk-utils-0.1.sh')]"
+      ],
+      "installCommand": "[concat('bash couchbase-azure-install.sh -d ', parameters('cbPackage'), ' -n ', parameters('clusterName'), ' -i ', concat(variables('networkSettings').nodesIpPrefix, '-', variables('clusterSpec').clusterSize), ' -a ', variables('machineSettings').adminUsername, ' -p ', variables('machineSettings').adminPassword, ' -r ', variables('clusterSpec').couchbaseRamQuota)]",
+      "setupCommand": "[concat('bash couchbase-azure-install.sh -d ', parameters('cbPackage'), ' -n ', parameters('clusterName'), ' -i ', concat(variables('networkSettings').nodesIpPrefix, '-', variables('clusterSpec').clusterSize), ' -a ', variables('machineSettings').adminUsername, ' -p ', variables('machineSettings').adminPassword, ' -r ', variables('clusterSpec').couchbaseRamQuota, ' -l')]"
+    },
+    "clusterSpec": "[variables(concat('tshirtSize', parameters('tshirtSize')))]"
+``` 
+
+In combination all this allows for a very fine grained configuration and set-up of resources in Azure. 
+The above ARM template snippet is taken from the [Couchbase Cluster ARM template](https://github.com/martinesmann/couchbase-azure/tree/master/src/templates) on GitHub. 
+  
+
 ##Azure CLI
+
 
 ###Authentication
 Before using the Azure CLI we need to authenticate against Microsoft Azure. There are multiple ways to authenticate the CLI with Azure, for a detailed guide visit [Connect to an Azure](https://azure.microsoft.com/en-us/documentation/articles/xplat-cli-connect/).
@@ -64,7 +112,7 @@ azure config mode arm
 
 ###Create a Resource Group
 ```
-azure group create -n CB_RESOURCE_GROUP -l "West US"
+azure group create -n CB_RESOURCE_GROUP -l "Eest US"
 ```
 ###Create a deployment and wait for success
 
@@ -77,5 +125,5 @@ azure group deployment create \
 ```
 ###Public IP for Resource Group
 ```
-azure network public-ip list $AZURE_RESOURCE_GROUP_NAME
+azure network public-ip list CB_RESOURCE_GROUP
 ```
