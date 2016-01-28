@@ -294,28 +294,39 @@ The full source, templates and all dependencies can be found on GitHub, [couchba
 
 Navigating to the [templates folder](https://github.com/martinesmann/couchbase-azure/tree/master/src/templates), reveal eleven separate files:
 
-1. [azuredeploy.json](https://github.com/martinesmann/couchbase-azure/blob/master/src/templates/azuredeploy.json) - The main entry point for the ARM template.
+###[azuredeploy.json](https://github.com/martinesmann/couchbase-azure/blob/master/src/templates/azuredeploy.json)
+The main entry point for the ARM template.
 
-2. [azuredeploy.parameters.json](https://github.com/martinesmann/couchbase-azure/blob/master/src/templates/azuredeploy.parameters.json) - predefined default parameters.
+###[azuredeploy.parameters.json](https://github.com/martinesmann/couchbase-azure/blob/master/src/templates/azuredeploy.parameters.json)
+Predefined default parameters.
 
-3. [cluster-nodes-A2.json](https://github.com/martinesmann/couchbase-azure/blob/master/src/templates/cluster-nodes-A2.json) - Partial ARM template for configuration using the A2 VM's.
+###[cluster-nodes-A2.json](https://github.com/martinesmann/couchbase-azure/blob/master/src/templates/cluster-nodes-A2.json)
+Partial ARM template for configuration using the A2 VM's.
 
-4. [cluster-nodes-A6.json](https://github.com/martinesmann/couchbase-azure/blob/master/src/templates/cluster-nodes-A6.json) - Partial ARM template for configuration using the A6 VM's.
+###[cluster-nodes-A6.json](https://github.com/martinesmann/couchbase-azure/blob/master/src/templates/cluster-nodes-A6.json)
+Partial ARM template for configuration using the A6 VM's.
 
-5. [cluster-nodes-D14.json](https://github.com/martinesmann/couchbase-azure/blob/master/src/templates/cluster-nodes-D14.json) - Partial ARM template for configuration using the D14 VM's. 
+###[cluster-nodes-D14.json](https://github.com/martinesmann/couchbase-azure/blob/master/src/templates/cluster-nodes-D14.json)
+Partial ARM template for configuration using the D14 VM's. 
 
-6. [couchbase-azure-install.sh](https://github.com/martinesmann/couchbase-azure/blob/master/src/templates/couchbase-azure-install.sh) - Shell script to download and install Couchbase Server on the nodes and setting up the Cluster.
+###[couchbase-azure-install.sh](https://github.com/martinesmann/couchbase-azure/blob/master/src/templates/couchbase-azure-install.sh)
+Shell script to download and install Couchbase Server on the nodes and setting up the Cluster.
 
-7. [jumpbox-resources-disabled.json](https://github.com/martinesmann/couchbase-azure/blob/master/src/templates/jumpbox-resources-disabled.json) - Shell script to use when jump box is disabled for the set-up.
+###[jumpbox-resources-disabled.json](https://github.com/martinesmann/couchbase-azure/blob/master/src/templates/jumpbox-resources-disabled.json)
+Shell script to use when jump box is disabled for the set-up.
 
-8. [jumpbox-resources-enabled.json](https://github.com/martinesmann/couchbase-azure/blob/master/src/templates/jumpbox-resources-enabled.json) - Shell script for setting up the jump box machine. 
+###[jumpbox-resources-enabled.json](https://github.com/martinesmann/couchbase-azure/blob/master/src/templates/jumpbox-resources-enabled.json)
+Shell script for setting up the jump box machine. 
 
-9. [metadata.json](https://github.com/martinesmann/couchbase-azure/blob/master/src/templates/metadata.json) - File used to keep track of changes, inherited from the original source at [couchbase-on-ubuntu](https://github.com/Azure/azure-quickstart-templates/tree/master/couchbase-on-ubuntu).
+###[metadata.json](https://github.com/martinesmann/couchbase-azure/blob/master/src/templates/metadata.json)
+File used to keep track of changes, inherited from the original source at [couchbase-on-ubuntu](https://github.com/Azure/azure-quickstart-templates/tree/master/couchbase-on-ubuntu).
 
-10. [shared-resources.json](https://github.com/martinesmann/couchbase-azure/blob/master/src/templates/shared-resources.json) - Shared resource, inherited from the original source at [couchbase-on-ubuntu](https://github.com/Azure/azure-quickstart-templates/tree/master/couchbase-on-ubuntu).
+###[shared-resources.json](https://github.com/martinesmann/couchbase-azure/blob/master/src/templates/shared-resources.json)
+Shared resource, inherited from the original source at [couchbase-on-ubuntu](https://github.com/Azure/azure-quickstart-templates/tree/master/couchbase-on-ubuntu).
 
 
-11. [vm-disk-utils-0.1.sh](https://github.com/martinesmann/couchbase-azure/blob/master/src/templates/vm-disk-utils-0.1.sh) - Linux disk util. 
+###[vm-disk-utils-0.1.sh](https://github.com/martinesmann/couchbase-azure/blob/master/src/templates/vm-disk-utils-0.1.sh)
+Linux disk util. 
 
 
 
