@@ -126,7 +126,18 @@ I have chosen to use Azure CLI as it seems to have the wides audience and can be
 The rest of this post will assume the use of the Azure CLI, but many (if not all) commands also exists in Azure PowerShell.
 
 ###Install Azure CLI
-Depending on you preferences you can install Azure CLI from a dedicated install or using `npm`
+Depending on you preferences you can install Azure CLI from a dedicated install package for your platform or using `npm`, full instructions can be found here, [Install the Azure CLI](https://azure.microsoft.com/en-us/documentation/articles/xplat-cli-install/).
+
+Assuming you have a Mac and `npm` is already installed on your system, then installing Azure CLI is a single line:
+
+```
+sudo npm install -g azure-cli
+```
+
+Please note the use of the global install argument `-g`, this ensures that Azure CLI is globally available on the system.
+
+##Using Azure CLI 
+Now that we have Azure CLI installed let's move on and see how to use the tool to deploy and manage your Azure resources with ARM templates.
 
 ###Authentication
 Before using the Azure CLI we need to authenticate against Microsoft Azure. There are multiple ways to authenticate the CLI with Azure, for a detailed guide visit [Connect to an Azure](https://azure.microsoft.com/en-us/documentation/articles/xplat-cli-connect/).
@@ -154,26 +165,117 @@ azure account set "Azure Pass"
 ```
 
 ###Set the Azure Resource Manager mode
-The Azure Resource Manager mode is not enabled by default, use the following command to enable Azure CLI Resource Manager commands.
+Azure CLI can work in two different modes, classic and arm. Depending on the mode you select you will be restricted to work only with those resource types (you can always change mode later on). 
+
+We are working with Azure Resource Manager templates and therefore we need to switch mode to `arm`. 
+
+The default mode for Azure CLI is `classic`, use the following command to enable Azure Resource Manager mode:
 
 ```
 azure config mode arm
 ```
 
 ###Create a Resource Group
+When working with Azure Resource Manager you always work within a "resource group". You can think of a "resource group as a bucket, container or logical area for your resources. The resource group encapsulates all the resources need for your application and makes it easy to define boundaries between resources.
+
+A resource group needs to be created within a location (Azure region).
+
+Depending on your subscription the available location can vary. To get the complet list for you subscription run the following command:
+
+```
+azure location list
+``` 
+
+Pick a location for your resource group and create a resource group:
+ 
 ```
 azure group create -n CB_RESOURCE_GROUP -l "Eest US"
 ```
+
 ###Create a deployment and wait for success
+With a resource group created we can "deploy" a ARM template to the resource group. This will create all the resources defined in the ARM template to resource group.
+
+The below command will "send" the ARM template to Azure and start the deployment of the defined resources to the specified resource group. 
+
+>Important!
+>
+>This command will create a three node cluster on your subscription and with that start consumption/usage on your Azure subscription. Depending on your subscription type, level etc. this may put charges on you subscription that you may be billed for later! 
+
 
 ```
 azure group deployment create \
 	--template-uri https://raw.githubusercontent.com/martinesmann/couchbase-azure/master/src/templates/azuredeploy.json \
-    -e templates/azuredeploy.parameters.json \
+    -e azuredeploy.parameters.json \
     CB_RESOURCE_GROUP \
     AZURE_DEPLOYMENT
 ```
+
+Let me explain the command in a bit more detail.
+The `\` is only added to allow line breaks for a single line command in the console. This is not specific to Azure CLI.
+
+The first line instructs Azure CLI to create a new deployment.
+
+Second line is the reference to the ARM template, this value can be both a local file or (as in this case) a reference to a public location.
+
+ARM templates need parameters and variables, the third line instructs Azure CLI where to find the parameters. You can also add parameters directly from the command line, but I find it more convenient to use a file. 
+It's worth noting that when using a parameters file it needs to be local, on you machine. I guess this restriction is enforced by Microsoft to ensure security and no accidental sharing of sensitive data.
+
+Execution time for the above command is about 10-25 minutes. Therefore if you need a cop of coffee, now would be a good time to get that :)
+
+
 ###Public IP for Resource Group
+Ones the deployment is completed and succeeded it's time to inspect the result.
+
+The Couchbase ARM template actually create four virtual machines! Three Couchbase nodes combined to a single cluster and one virtual machine set-up as a `jump box`. The set-up is the recommended best practice from Couchbase and ensures that the Couchbase Cluster is protected behind a firewall and can only be "directly" access though the jump box machine.
+
+Actually the security configuration set-up by the ARM template is really elegant, none of the Couchbase nodes have a public IP. This means that there is no way to access the nodes without going through the jump box! Perfect.
+
+We can confirm this by asking Azure CLI to return ALL public IP's assigned for our resource group.
+ 
 ```
 azure network public-ip list CB_RESOURCE_GROUP
 ```
+
+We can now use this IP to create an ssh tunnel to our Couchbase Cluster.
+
+```
+[MAC ONLY]
+ssh -D 8080 -C -N couchadmin@{ip-address}
+```
+
+>Info:
+>
+>If you used the default parameters then:
+>User: couchadmin
+>Password: P@ssword1
+
+The ssh command opens a proxy connection to the jump box machine in Azure. 
+
+If you set-up your network connection to use the proxy for all network traffic, we can connect to the Couchbase Cluster!
+
+[MAC ONLY]
+**set-up your proxy:**
+
+1. Open "System Preferences"
+2. Navigate to "Network"
+3. Select "Advanced"
+4. Click the "Proxies" tab.
+5. Select "SOCKS Proxy"
+	1. SOCKS Proxy server address: `127.0.0.1`
+	2. Port: `8080`
+6. Click "OK".
+7. Click "Apply".
+8. Open you favourite browser and navigate to [http://10.0.0.10:8091](http://10.0.0.10:8091)
+9. Inspect your Couchbase installation (user: `couchbaseadmin`, password: `P@ssword1` )
+
+![image](content/images/Screen Shot 2016-01-28 at 14.17.34.png)
+
+>Note:
+>
+>Remember to undo the proxy changes when done testing.
+
+
+
+
+
+	
