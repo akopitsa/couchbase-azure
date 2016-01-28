@@ -226,6 +226,8 @@ Execution time for the above command is about 10-25 minutes. Therefore if you ne
 ###Public IP for Resource Group
 Ones the deployment is completed and succeeded it's time to inspect the result.
 
+You can always navigate to the [Azure Portal](https://portal.azure.com) to get a visual of what has been deployed, but we can also use Azure CLI.
+
 The Couchbase ARM template actually create four virtual machines! Three Couchbase nodes combined to a single cluster and one virtual machine set-up as a `jump box`. The set-up is the recommended best practice from Couchbase and ensures that the Couchbase Cluster is protected behind a firewall and can only be "directly" access though the jump box machine.
 
 Actually the security configuration set-up by the ARM template is really elegant, none of the Couchbase nodes have a public IP. This means that there is no way to access the nodes without going through the jump box! Perfect.
@@ -274,8 +276,16 @@ If you set-up your network connection to use the proxy for all network traffic, 
 >
 >Remember to undo the proxy changes when done testing.
 
+###Delete the Resource Group
+If this deployment was done only to test the experience, then it's safe to assume you at some point in time would like to take down the Couchbase Cluster and release all resources (take the service and resources down)
 
+Because all resources where created into a single resource group, deleting that resource group will take down all services and resources. Using Azure CLI, this is a very easy task:
 
+```
+azure group delete CB_RESOURCE_GROUP
+```
 
+>This command will take several minutes to complet.
 
-	
+##Couchbase ARM Template
+
