@@ -31,7 +31,7 @@ Here is an example of the most simple ARM template:
 }
 ``` 
 
-ARM templates are written in JSON with the option to use some special formatted strings that can work as references to variables and or method calls. 
+ARM templates are written in JSON with the option to use some special formatted strings that can work as references to variables and/or method calls. 
 
 The ARM template snippet below shows how to define a virtual network and the use of `variables` and `parameters` in an ARM template.
 
@@ -61,7 +61,12 @@ The ARM template snippet below shows how to define a virtual network and the use
 
 You can read more about how to author ARM templates from the Microsoft [Azure documentation](https://azure.microsoft.com/en-us/documentation/articles/resource-group-authoring-templates/). 
 
-It also possible to execute external code like shell scripts etc. to allow for custom configuration, installation on Virtual Machine as part of the set-up process.
+It also possible to execute external code like shell scripts etc. to allow for custom configuration, installation directly on a Virtual Machine as part of the set-up process.
+
+In combination all this allows for a very fine grained configuration and set-up of resources in Azure. 
+The above ARM template snippet is taken from the [Couchbase Cluster ARM template](https://github.com/martinesmann/couchbase-azure/tree/master/src/templates) on GitHub. 
+
+The option to execute scripts on the VM is used to install and configure Couchbase Server on each individual VM and then lastly set-up the Couchbase Cluster between the individual Couchbase nodes. 
 
 ```
  "vmScripts": {
@@ -76,18 +81,52 @@ It also possible to execute external code like shell scripts etc. to allow for c
     "clusterSpec": "[variables(concat('tshirtSize', parameters('tshirtSize')))]"
 ``` 
 
-In combination all this allows for a very fine grained configuration and set-up of resources in Azure. 
-The above ARM template snippet is taken from the [Couchbase Cluster ARM template](https://github.com/martinesmann/couchbase-azure/tree/master/src/templates) on GitHub. 
-  
+The above snippet shows how to configure an external script as part of the ARM template and passing in command line arguments, using `parameters`.
+
+We will talk more about ARM templates later.   
 
 ##Azure CLI
-The Azure CLI is a command line tool for working with Microsoft Azure build for Mac, Linux, and Windows. 
+In the previous section we briefly learned about ARM templates and how they can be used to describe resources in Azure. A recipe for the resources and there individual configurations as need for your specific set-up.
 
-If you have a Windows background and prefer working with [PowerShell](https://azure.microsoft.com/en-us/documentation/articles/powershell-azure-resource-manager/) then most of the commands works there as well. 
+In this section we we focus on how to use the ARM template or in Azure jargon, Deploy ARM templates. You have a few deployment options, let's briefly walk through them.
+
+###Using Azure Portal, option 1
+The new Azure portal give you an option to do "template deployment" from within the portal itself. 
+By navigating to: [Microsoft.Template](https://portal.azure.com/#create/Microsoft.Template)
+you can copy/paste you ARM template into the portal and execute it. The UI even support custom parameters etc.
+
+The drawback is that you can only copy/paste one ARM template into the portal and all resources need to be with this single "file".
+
+###Using Azure Portal, option 2
+This feature is very close to "option 1" but with a few differences. It's possible to instruct Azure to download an ARM template from an external source, only requirement is that all resources (templates´, scritps etc.) are publicly available.
+
+This feature can be seen and tested from the Microsoft Official Azure Quick Start Templates repository on GitHub, [azure-quickstart-templates](https://github.com/Azure/azure-quickstart-templates/)
+
+If you visit this specific template[101-vm-simple-windows](https://github.com/Azure/azure-quickstart-templates/tree/master/101-vm-simple-windows) you will see a blue button (Deploy to Azure). Pushing this button will redirect you to the Azure Portal Template Deployment, but now with the template pre-pasted into the portal.
+
+>Note! 
+>
+>The [azure-quickstart-templates](https://github.com/Azure/azure-quickstart-templates/) is a great resource for learning more about ARM templates.
+
+###Azure PowerShell 
+Azure PowerShell is a module for PowerShell that gives you access to execute commands agains Azure from PowerShell. You can create, test, deploy, and manage solutions and services incl ARM template deployments.
+
+PowerShell is a great command line tool for the Windows Platform and widely used by both IT Professionals and Developers, but it's only available on Windows. 
+
+Read more [PowerShell](https://azure.microsoft.com/en-us/documentation/articles/powershell-azure-resource-manager/)
+
+But not everyone run Windows! That's why Microsoft has developed the Azure CLI tool.
+
+###Azure CLI     
+The Azure CLI is a command line tool for working with Microsoft Azure; build for Mac, Linux, and Windows. 
+Working with a x-platform tool like Azure CLI give you the great benefit that you can use your knowlagde on all platforms.
 
 I have chosen to use Azure CLI as it seems to have the wides audience and can be used on most platforms.
 
+The rest of this post will assume the use of the Azure CLI, but many (if not all) commands also exists in Azure PowerShell.
 
+###Install Azure CLI
+Depending on you preferences you can install Azure CLI from a dedicated install or using `npm`
 
 ###Authentication
 Before using the Azure CLI we need to authenticate against Microsoft Azure. There are multiple ways to authenticate the CLI with Azure, for a detailed guide visit [Connect to an Azure](https://azure.microsoft.com/en-us/documentation/articles/xplat-cli-connect/).
