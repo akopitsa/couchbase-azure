@@ -1,0 +1,538 @@
+<!DOCTYPE html><html>
+
+<head>
+<meta charset="utf-8">
+<title>README</title>
+
+</head>
+<body>
+<h1 id="toc_0">Couchbase with Azure ARM Templates</h1>
+
+<p>This blog post describes how to set up your own Couchbase Cluster using Azure Resource Manager templates, aka ARM templates.</p>
+
+<h2 id="toc_1">Prerequisites:</h2>
+
+<p>If you would like to try this you will need a few things:</p>
+
+<ol>
+<li>Azure Subscription, sign-up here for a <a href="https://azure.microsoft.com/en-us/pricing/free-trial">free trial</a>.</li>
+<li>Azure CLI, installed on your system, <a href="https://azure.microsoft.com/en-us/documentation/articles/xplat-cli-install/">how to install</a>. </li>
+<li><a href="https://github.com/">Github Account</a>, optional if you would like to experiment with your own ARM templates.</li>
+</ol>
+
+<h2 id="toc_2">What you will deploy</h2>
+
+<p>This blog post will walk you through the steps needed to deploy your own Couchbase Server 4.1 cluster in Microsoft Azure. The size of the cluster is configurable but will, as a minimum, consist of a three node cluster set-up with replication to one node. You can also choose the data center location for your cluster between all available locations accessable with your Microsoft Azure subscription.   </p>
+
+<p>In the process of deploying Couchbase to Azure you will learn about Azure Resource Manager Templates and how to edit them to fit your needs. This will allow you to change the default values in the Couchbase ARM template and also understand how to use ARM templates in other cases when using Microsoft Azure.</p>
+
+<h2 id="toc_3">Azure Resource Manager templates</h2>
+
+<p>Azure Resource Manager allows you to provision applications to Microsoft Azure using a declarative template. With a single template, you can deploy multiple services along with their dependencies. You also have the option of splitting up your ARM templates into multiple templates that each describe individual resources. You can use the same templates individually or separately to repeatedly deploy your application/resources during every stage of the application lifecycle.</p>
+
+<p>You can compare ARM templates to other resource description technologies such as <a href="https://docs.chef.io/resource_template.html">chef.io</a> or others.</p>
+
+<p>Here is an example of the most simple ARM template:</p>
+
+<pre><code class="language-none">{
+   &quot;$schema&quot;: &quot;http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#&quot;,
+   &quot;contentVersion&quot;: &quot;&quot;,
+   &quot;parameters&quot;: {  },
+   &quot;variables&quot;: {  },
+   &quot;resources&quot;: [  ],
+   &quot;outputs&quot;: {  }
+}</code></pre>
+
+<p>ARM templates are written in JSON with the option to use some specially formatted strings that can work as references to variables and/or method calls. </p>
+
+<p>The ARM template snippet below shows how to define a virtual network and the use of <code>variables</code> and <code>parameters</code> in an ARM template.</p>
+
+<pre><code class="language-none">{
+      &quot;apiVersion&quot;: &quot;2015-05-01-preview&quot;,
+      &quot;type&quot;: &quot;Microsoft.Network/virtualNetworks&quot;,
+      &quot;name&quot;: &quot;[variables(&#39;virtualNetworkName&#39;)]&quot;,
+      &quot;location&quot;: &quot;[variables(&#39;location&#39;)]&quot;,
+      &quot;properties&quot;: {
+        &quot;addressSpace&quot;: {
+          &quot;addressPrefixes&quot;: [
+            &quot;[variables(&#39;addressPrefix&#39;)]&quot;
+          ]
+        },
+        &quot;subnets&quot;: [
+          {
+            &quot;name&quot;: &quot;[variables(&#39;subnetName&#39;)]&quot;,
+            &quot;properties&quot;: {
+              &quot;addressPrefix&quot;: &quot;[variables(&#39;subnetPrefix&#39;)]&quot;
+            }
+          }
+        ]
+      }
+    },</code></pre>
+
+<p>You can read more about how to author ARM templates in the Microsoft <a href="https://azure.microsoft.com/en-us/documentation/articles/resource-group-authoring-templates/">Azure documentation</a>. </p>
+
+<p>It is also possible to execute external code, such as shell scripts etc., to allow for custom configuration and installation directly on a Virtual Machine as part of the set-up process.</p>
+
+<p>In combination all this allows for a very fine grained configuration and set-up of resources in Azure. </p>
+
+<p>The above ARM template snippet is taken from the <a href="https://github.com/martinesmann/couchbase-azure/tree/master/src/templates">Couchbase Cluster ARM template</a> on GitHub. </p>
+
+<p>The option to execute scripts on the VM is used to install and configure Couchbase Server on each individual VM and then lastly set-up the Couchbase Cluster between the individual Couchbase nodes. </p>
+
+<pre><code class="language-none"> &quot;vmScripts&quot;: {
+      &quot;scriptsToDownload&quot;: [
+        &quot;[concat(variables(&#39;templateBaseUrl&#39;), &#39;couchbase-azure-install.sh&#39;)]&quot;,
+        &quot;[concat(parameters(&#39;cbPackageDownloadBase&#39;), parameters(&#39;cbPackage&#39;))]&quot;,
+        &quot;[concat(variables(&#39;templateBaseUrl&#39;), &#39;vm-disk-utils-0.1.sh&#39;)]&quot;
+      ],
+      &quot;installCommand&quot;: &quot;[concat(&#39;bash couchbase-azure-install.sh -d &#39;, parameters(&#39;cbPackage&#39;), &#39; -n &#39;, parameters(&#39;clusterName&#39;), &#39; -i &#39;, concat(variables(&#39;networkSettings&#39;).nodesIpPrefix, &#39;-&#39;, variables(&#39;clusterSpec&#39;).clusterSize), &#39; -a &#39;, variables(&#39;machineSettings&#39;).adminUsername, &#39; -p &#39;, variables(&#39;machineSettings&#39;).adminPassword, &#39; -r &#39;, variables(&#39;clusterSpec&#39;).couchbaseRamQuota)]&quot;,
+      &quot;setupCommand&quot;: &quot;[concat(&#39;bash couchbase-azure-install.sh -d &#39;, parameters(&#39;cbPackage&#39;), &#39; -n &#39;, parameters(&#39;clusterName&#39;), &#39; -i &#39;, concat(variables(&#39;networkSettings&#39;).nodesIpPrefix, &#39;-&#39;, variables(&#39;clusterSpec&#39;).clusterSize), &#39; -a &#39;, variables(&#39;machineSettings&#39;).adminUsername, &#39; -p &#39;, variables(&#39;machineSettings&#39;).adminPassword, &#39; -r &#39;, variables(&#39;clusterSpec&#39;).couchbaseRamQuota, &#39; -l&#39;)]&quot;
+    },
+    &quot;clusterSpec&quot;: &quot;[variables(concat(&#39;tshirtSize&#39;, parameters(&#39;tshirtSize&#39;)))]&quot;</code></pre>
+
+<p>The above snippet shows how to configure an external script as part of the ARM template and pass in command line arguments, using <code>parameters</code>.</p>
+
+<p>We will talk more about ARM templates later.   </p>
+
+<h2 id="toc_4">Azure CLI</h2>
+
+<p>In the previous section we briefly learned about ARM templates and how they can be used to describe resources in Azure. A recipe for the resources and there individual configurations as need for your specific set-up.</p>
+
+<p>In this section we we focus on how to use the ARM template or in Azure jargon, Deploy ARM templates. You have a few deployment options, let&#39;s briefly walk through them.</p>
+
+<h3 id="toc_5">Using Azure Portal, option 1</h3>
+
+<p>The new Azure portal give you an option to do &quot;template deployment&quot; from within the portal itself. 
+By navigating to: <a href="https://portal.azure.com/#create/Microsoft.Template">Microsoft.Template</a>
+you can copy/paste you ARM template into the portal and execute it. The UI even support custom parameters etc.</p>
+
+<p>The drawback is that you can only copy/paste one ARM template into the portal and all resources need to be with this single &quot;file&quot;.</p>
+
+<h3 id="toc_6">Using Azure Portal, option 2</h3>
+
+<p>This feature is very close to &quot;option 1&quot; but with a few differences. It&#39;s possible to instruct Azure to download an ARM template from an external source, only requirement is that all resources (templates´, scritps etc.) are publicly available.</p>
+
+<p>This feature can be seen and tested from the Microsoft Official Azure Quick Start Templates repository on GitHub, <a href="https://github.com/Azure/azure-quickstart-templates/">azure-quickstart-templates</a></p>
+
+<p>If you visit this specific template<a href="https://github.com/Azure/azure-quickstart-templates/tree/master/101-vm-simple-windows">101-vm-simple-windows</a> you will see a blue button (Deploy to Azure). Pushing this button will redirect you to the Azure Portal Template Deployment, but now with the template pre-pasted into the portal.</p>
+
+<blockquote>
+<p>Note! </p>
+
+<p>The <a href="https://github.com/Azure/azure-quickstart-templates/">azure-quickstart-templates</a> is a great resource for learning more about ARM templates.</p>
+</blockquote>
+
+<h3 id="toc_7">Azure PowerShell</h3>
+
+<p>Azure PowerShell is a module for PowerShell that gives you access to execute commands agains Azure from PowerShell. You can create, test, deploy, and manage solutions and services incl ARM template deployments.</p>
+
+<p>PowerShell is a great command line tool for the Windows Platform and widely used by both IT Professionals and Developers, but it&#39;s only available on Windows. </p>
+
+<p>Read more <a href="https://azure.microsoft.com/en-us/documentation/articles/powershell-azure-resource-manager/">PowerShell</a></p>
+
+<p>But not everyone run Windows! That&#39;s why Microsoft has developed the Azure CLI tool.</p>
+
+<h3 id="toc_8">Azure CLI</h3>
+
+<p>The Azure CLI is a command line tool for working with Microsoft Azure; build for Mac, Linux, and Windows. 
+Working with a x-platform tool like Azure CLI give you the great benefit that you can use your knowlagde on all platforms.</p>
+
+<p>I have chosen to use Azure CLI as it seems to have the wides audience and can be used on most platforms.</p>
+
+<p>The rest of this post will assume the use of the Azure CLI, but many (if not all) commands also exists in Azure PowerShell.</p>
+
+<h3 id="toc_9">Install Azure CLI</h3>
+
+<p>Depending on you preferences you can install Azure CLI from a dedicated install package for your platform or using <code>npm</code>, full instructions can be found here, <a href="https://azure.microsoft.com/en-us/documentation/articles/xplat-cli-install/">Install the Azure CLI</a>.</p>
+
+<p>Assuming you have a Mac and <code>npm</code> is already installed on your system, then installing Azure CLI is a single line:</p>
+
+<pre><code class="language-none">sudo npm install -g azure-cli</code></pre>
+
+<p>Please note the use of the global install argument <code>-g</code>, this ensures that Azure CLI is globally available on the system.</p>
+
+<h2 id="toc_10">Using Azure CLI</h2>
+
+<p>Now that we have Azure CLI installed let&#39;s move on and see how to use the tool to deploy and manage your Azure resources with ARM templates.</p>
+
+<h3 id="toc_11">Authentication</h3>
+
+<p>Before using the Azure CLI we need to authenticate against Microsoft Azure. There are multiple ways to authenticate the CLI with Azure, for a detailed guide visit <a href="https://azure.microsoft.com/en-us/documentation/articles/xplat-cli-connect/">Connect to an Azure</a>.</p>
+
+<p>In this guide we will use this command:</p>
+
+<pre><code class="language-none">azure login</code></pre>
+
+<p><em>Please follow the on screen instructions to authenticate the Azure CLI.</em></p>
+
+<h3 id="toc_12">Set Azure Subscription Account to use</h3>
+
+<p>If you have multiple Azure Subscriptions you need to select the subscription to use.</p>
+
+<p>Use this command to liste the available subscriptions for the account: </p>
+
+<pre><code class="language-none">azure account list</code></pre>
+
+<p>Set the subscription you would like to use as your <code>default</code> account for all instances of the Azure CLI instance. 
+<code>
+azure account set &quot;Azure Pass&quot; 
+</code></p>
+
+<h3 id="toc_13">Set the Azure Resource Manager mode</h3>
+
+<p>Azure CLI can work in two different modes, classic and arm. Depending on the mode you select you will be restricted to work only with those resource types (you can always change mode later on). </p>
+
+<p>We are working with Azure Resource Manager templates and therefore we need to switch mode to <code>arm</code>. </p>
+
+<p>The default mode for Azure CLI is <code>classic</code>, use the following command to enable Azure Resource Manager mode:</p>
+
+<pre><code class="language-none">azure config mode arm</code></pre>
+
+<h3 id="toc_14">Create a Resource Group</h3>
+
+<p>When working with Azure Resource Manager you always work within a &quot;resource group&quot;. You can think of a &quot;resource group as a bucket, container or logical area for your resources. The resource group encapsulates all the resources need for your application and makes it easy to define boundaries between resources.</p>
+
+<p>A resource group needs to be created within a location (Azure region).</p>
+
+<p>Depending on your subscription the available location can vary. To get the complet list for you subscription run the following command:</p>
+
+<pre><code class="language-none">azure location list</code></pre>
+
+<p>Pick a location for your resource group and create a resource group:</p>
+
+<pre><code class="language-none">azure group create -n CB_RESOURCE_GROUP -l &quot;Eest US&quot;</code></pre>
+
+<h3 id="toc_15">Create a deployment and wait for success</h3>
+
+<p>With a resource group created we can &quot;deploy&quot; a ARM template to the resource group. This will create all the resources defined in the ARM template to resource group.</p>
+
+<p>The below command will &quot;send&quot; the ARM template to Azure and start the deployment of the defined resources to the specified resource group. </p>
+
+<blockquote>
+<p>Important!</p>
+
+<p>This command will create a three node cluster on your subscription and with that start consumption/usage on your Azure subscription. Depending on your subscription type, level etc. this may put charges on you subscription that you may be billed for later! </p>
+</blockquote>
+
+<pre><code class="language-none">azure group deployment create \
+    --template-uri https://raw.githubusercontent.com/martinesmann/couchbase-azure/master/src/templates/azuredeploy.json \
+    -e azuredeploy.parameters.json \
+    CB_RESOURCE_GROUP \
+    AZURE_DEPLOYMENT</code></pre>
+
+<p>Let me explain the command in a bit more detail.
+The <code>\</code> is only added to allow line breaks for a single line command in the console. This is not specific to Azure CLI.</p>
+
+<p>The first line instructs Azure CLI to create a new deployment.</p>
+
+<p>Second line is the reference to the ARM template, this value can be both a local file or (as in this case) a reference to a public location.</p>
+
+<p>ARM templates need parameters and variables, the third line instructs Azure CLI where to find the parameters. You can also add parameters directly from the command line, but I find it more convenient to use a file. 
+It&#39;s worth noting that when using a parameters file it needs to be local, on you machine. I guess this restriction is enforced by Microsoft to ensure security and no accidental sharing of sensitive data.</p>
+
+<p>Execution time for the above command is about 10-25 minutes. Therefore if you need a cop of coffee, now would be a good time to get that :)</p>
+
+<h3 id="toc_16">Public IP for Resource Group</h3>
+
+<p>Ones the deployment is completed and succeeded it&#39;s time to inspect the result.</p>
+
+<p>You can always navigate to the <a href="https://portal.azure.com">Azure Portal</a> to get a visual of what has been deployed, but we can also use Azure CLI.</p>
+
+<p>The Couchbase ARM template actually create four virtual machines! Three Couchbase nodes combined to a single cluster and one virtual machine set-up as a <code>jump box</code>. The set-up is the recommended best practice from Couchbase and ensures that the Couchbase Cluster is protected behind a firewall and can only be &quot;directly&quot; access though the jump box machine.</p>
+
+<p>Actually the security configuration set-up by the ARM template is really elegant, none of the Couchbase nodes have a public IP. This means that there is no way to access the nodes without going through the jump box! Perfect.</p>
+
+<p>We can confirm this by asking Azure CLI to return ALL public IP&#39;s assigned for our resource group.</p>
+
+<pre><code class="language-none">azure network public-ip list CB_RESOURCE_GROUP</code></pre>
+
+<p>We can now use this IP to create an ssh tunnel to our Couchbase Cluster.</p>
+
+<pre><code class="language-none">[MAC ONLY]
+ssh -D 8080 -C -N couchadmin@{ip-address}</code></pre>
+
+<blockquote>
+<p>Info:</p>
+
+<p>If you used the default parameters then:
+User: couchadmin
+Password: P@ssword1</p>
+</blockquote>
+
+<p>The ssh command opens a proxy connection to the jump box machine in Azure. </p>
+
+<p>If you set-up your network connection to use the proxy for all network traffic, we can connect to the Couchbase Cluster!</p>
+
+<p>[MAC ONLY]
+<strong>set-up your proxy:</strong></p>
+
+<ol>
+<li>Open &quot;System Preferences&quot;</li>
+<li>Navigate to &quot;Network&quot;</li>
+<li>Select &quot;Advanced&quot;</li>
+<li>Click the &quot;Proxies&quot; tab.</li>
+<li>Select &quot;SOCKS Proxy&quot;
+
+<ol>
+<li>SOCKS Proxy server address: <code>127.0.0.1</code></li>
+<li>Port: <code>8080</code></li>
+</ol></li>
+<li>Click &quot;OK&quot;.</li>
+<li>Click &quot;Apply&quot;.</li>
+<li>Open you favourite browser and navigate to <a href="http://10.0.0.10:8091">http://10.0.0.10:8091</a></li>
+<li>Inspect your Couchbase installation (user: <code>couchbaseadmin</code>, password: <code>P@ssword1</code> )</li>
+</ol>
+
+<p><img src="content/images/Screen%20Shot%202016-01-28%20at%2014.17.34.png" alt="image"></p>
+
+<blockquote>
+<p>Note:</p>
+
+<p>Remember to undo the proxy changes when done testing.</p>
+</blockquote>
+
+<h3 id="toc_17">Delete the Resource Group</h3>
+
+<p>If this deployment was done only to test the experience, then it&#39;s safe to assume you at some point in time would like to take down the Couchbase Cluster and release all resources (take the service and resources down)</p>
+
+<p>Because all resources where created into a single resource group, deleting that resource group will take down all services and resources. Using Azure CLI, this is a very easy task:</p>
+
+<pre><code class="language-none">azure group delete CB_RESOURCE_GROUP</code></pre>
+
+<blockquote>
+<p>This command will take several minutes to complet.</p>
+</blockquote>
+
+<h2 id="toc_18">Couchbase ARM Template</h2>
+
+<p>So far we have not dived in to much detail about the Couchbase ARM template itself. In this section we will touch on some of the more important aspects of the template and the ones that are specific for Couchbase.</p>
+
+<p>The full source, templates and all dependencies can be found on GitHub, <a href="https://github.com/martinesmann/couchbase-azure">couchbase-azure</a>.</p>
+
+<p>Navigating to the <a href="https://github.com/martinesmann/couchbase-azure/tree/master/src/templates">templates folder</a>, reveal eleven separate files:</p>
+
+<h3 id="toc_19"><a href="https://github.com/martinesmann/couchbase-azure/blob/master/src/templates/azuredeploy.json">azuredeploy.json</a></h3>
+
+<p>The main entry point for the ARM template. This template defines all the parameters and variables that are used in the template. All resources from network nic&#39;s to virtual machine sizes are specified within this file:</p>
+
+<p>This snippet, defines the properties for &quot;t-shirt size medium&quot;.
+<code>
+&quot;tshirtSizeMedium&quot;: {
+      &quot;storageAccountCount&quot;: 1,
+      &quot;clusterSizeMinusOne&quot;: 3,
+      &quot;lastNodeId&quot;: 3,
+      &quot;clusterSize&quot;: 4,
+      &quot;couchbaseRamQuota&quot;: 22000,
+      &quot;vmSize&quot;: &quot;Standard_A6&quot;,
+      &quot;maxNumberOfDataDisksForVmSizeNotUsedButHereForReference&quot;: 8,
+      &quot;vmTemplate&quot;: &quot;[concat(variables(&#39;templateBaseUrl&#39;), &#39;cluster-nodes-A6.json&#39;)]&quot;,
+      &quot;backendIPConfigurations&quot;: [
+        {
+          &quot;id&quot;: &quot;[concat(resourceId(&#39;Microsoft.Network/networkInterfaces&#39;,  &#39;nic0&#39;),&#39;/ipConfigurations/ipconfig1&#39;)]&quot;
+        },
+        {
+          &quot;id&quot;: &quot;[concat(resourceId(&#39;Microsoft.Network/networkInterfaces&#39;,  &#39;nic1&#39;),&#39;/ipConfigurations/ipconfig1&#39;)]&quot;
+        },
+        {
+          &quot;id&quot;: &quot;[concat(resourceId(&#39;Microsoft.Network/networkInterfaces&#39;,  &#39;nic2&#39;),&#39;/ipConfigurations/ipconfig1&#39;)]&quot;
+        },
+        {
+          &quot;id&quot;: &quot;[concat(resourceId(&#39;Microsoft.Network/networkInterfaces&#39;,  &#39;nic3&#39;),&#39;/ipConfigurations/ipconfig1&#39;)]&quot;
+        }
+      ]
+    },
+</code></p>
+
+<p>You can browse through the file to get a better idea of the structure and how things are configured.</p>
+
+<h3 id="toc_20"><a href="https://github.com/martinesmann/couchbase-azure/blob/master/src/templates/azuredeploy.parameters.json">azuredeploy.parameters.json</a></h3>
+
+<p>This file contains all the pre-defined default parameters for the template. This file is not mandatory but a great when starting a deployment.</p>
+
+<pre><code class="language-none">{
+  &quot;$schema&quot;: &quot;http://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#&quot;,
+  &quot;contentVersion&quot;: &quot;1.0.0.0&quot;,
+  &quot;parameters&quot;: {
+    &quot;adminUsername&quot;: {
+      &quot;value&quot;: &quot;couchadmin&quot;
+    },
+    &quot;adminPassword&quot;: {
+      &quot;value&quot;: &quot;P@ssword1&quot;
+    },
+    &quot;tshirtSize&quot;: {
+      &quot;value&quot;: &quot;Small&quot;
+    },
+    &quot;storageAccountNamePrefix&quot;: {
+      &quot;value&quot;: &quot;f180cbdply92&quot;
+    },
+    &quot;region&quot;: {
+      &quot;value&quot;: &quot;East Asia&quot;
+    },
+    &quot;virtualNetworkName&quot;: {
+      &quot;value&quot;: &quot;couchVnet&quot;
+    },
+    &quot;clusterName&quot;: {
+      &quot;value&quot;: &quot;couchbasefs180&quot;
+    },
+    &quot;jumpbox&quot;: {
+      &quot;value&quot;: &quot;enabled&quot;
+    }
+  }
+}</code></pre>
+
+<p>If you would like to change the password then this is the place to do it.</p>
+
+<h3 id="toc_21"><a href="https://github.com/martinesmann/couchbase-azure/blob/master/src/templates/cluster-nodes-A2.json">cluster-nodes-A2.json</a></h3>
+
+<p>Partial ARM template for configuration using the A2 VM&#39;s. This is also the file that configures the actual virtual machine resource, network, disks etc.</p>
+
+<pre><code class="language-none">{
+      &quot;apiVersion&quot;: &quot;2015-05-01-preview&quot;,
+      &quot;type&quot;: &quot;Microsoft.Compute/virtualMachines&quot;,
+      &quot;name&quot;: &quot;[concat(parameters(&#39;machineSettings&#39;).machineNamePrefix, parameters(&#39;nodeId&#39;))]&quot;,
+      &quot;location&quot;: &quot;[parameters(&#39;commonSettings&#39;).region]&quot;,
+      &quot;dependsOn&quot;: [
+        &quot;[concat(&#39;Microsoft.Network/networkInterfaces/&#39;, &#39;nic&#39;, parameters(&#39;nodeId&#39;))]&quot;
+      ],
+      &quot;properties&quot;: {
+        &quot;availabilitySet&quot;: {
+          &quot;id&quot;: &quot;[resourceId(&#39;Microsoft.Compute/availabilitySets&#39;, parameters(&#39;commonSettings&#39;).availabilitySet)]&quot;
+        },
+        &quot;hardwareProfile&quot;: {
+          &quot;vmSize&quot;: &quot;[parameters(&#39;vmSize&#39;)]&quot;
+        },
+        &quot;osProfile&quot;: {
+          &quot;computerName&quot;: &quot;[concat(parameters(&#39;machineSettings&#39;).machineNamePrefix, parameters(&#39;nodeId&#39;))]&quot;,
+          &quot;adminUsername&quot;: &quot;[parameters(&#39;machineSettings&#39;).adminUsername]&quot;,
+          &quot;adminPassword&quot;: &quot;[parameters(&#39;machineSettings&#39;).adminPassword]&quot;
+        },
+        &quot;storageProfile&quot;: {
+          &quot;imageReference&quot;: &quot;[parameters(&#39;machineSettings&#39;).imageReference]&quot;,
+          &quot;osDisk&quot;: {
+            &quot;name&quot;: &quot;osdisk&quot;,
+            &quot;vhd&quot;: {
+              &quot;uri&quot;: &quot;[concat(&#39;http://&#39;, parameters(&#39;storageAccountName&#39;), &#39;.blob.core.windows.net/&#39;,variables(&#39;vmStorageAccountContainerName&#39;),&#39;/&#39;, parameters(&#39;machineSettings&#39;).machineNamePrefix, parameters(&#39;nodeId&#39;),&#39;os-disk.vhd&#39;)]&quot;
+            },
+            &quot;caching&quot;: &quot;ReadWrite&quot;,
+            &quot;createOption&quot;: &quot;FromImage&quot;
+          },
+          &quot;dataDisks&quot;: [
+            {
+              &quot;name&quot;: &quot;datadisk0&quot;,
+              &quot;diskSizeGB&quot;: &quot;[parameters(&#39;machineSettings&#39;).dataDiskSize]&quot;,
+              &quot;lun&quot;: 0,
+              &quot;caching&quot;: &quot;None&quot;,
+              &quot;createOption&quot;: &quot;Empty&quot;,
+              &quot;vhd&quot;: {
+                &quot;Uri&quot;: &quot;[concat(&#39;http://&#39;, parameters(&#39;storageAccountName&#39;), &#39;.blob.core.windows.net/&#39;,variables(&#39;vmStorageAccountContainerName&#39;),&#39;/&#39;, parameters(&#39;machineSettings&#39;).machineNamePrefix, parameters(&#39;nodeId&#39;),&#39;dataDisk0&#39; ,&#39;.vhd&#39;)]&quot;
+              }
+            },
+            {
+              &quot;name&quot;: &quot;datadisk1&quot;,
+              &quot;diskSizeGB&quot;: &quot;[parameters(&#39;machineSettings&#39;).dataDiskSize]&quot;,
+              &quot;lun&quot;: 1,
+              &quot;caching&quot;: &quot;None&quot;,
+              &quot;createOption&quot;: &quot;Empty&quot;,
+              &quot;vhd&quot;: {
+                &quot;Uri&quot;: &quot;[concat(&#39;http://&#39;, parameters(&#39;storageAccountName&#39;), &#39;.blob.core.windows.net/&#39;,variables(&#39;vmStorageAccountContainerName&#39;),&#39;/&#39;, parameters(&#39;machineSettings&#39;).machineNamePrefix, parameters(&#39;nodeId&#39;) ,&#39;dataDisk1&#39;,&#39;.vhd&#39;)]&quot;
+              }
+            },
+            {
+              &quot;name&quot;: &quot;datadisk2&quot;,
+              &quot;diskSizeGB&quot;: &quot;[parameters(&#39;machineSettings&#39;).dataDiskSize]&quot;,
+              &quot;lun&quot;: 2,
+              &quot;caching&quot;: &quot;None&quot;,
+              &quot;createOption&quot;: &quot;Empty&quot;,
+              &quot;vhd&quot;: {
+                &quot;Uri&quot;: &quot;[concat(&#39;http://&#39;, parameters(&#39;storageAccountName&#39;), &#39;.blob.core.windows.net/&#39;,variables(&#39;vmStorageAccountContainerName&#39;),&#39;/&#39;, parameters(&#39;machineSettings&#39;).machineNamePrefix, parameters(&#39;nodeId&#39;) ,&#39;dataDisk2&#39;,&#39;.vhd&#39;)]&quot;
+              }
+            },
+            {
+              &quot;name&quot;: &quot;datadisk3&quot;,
+              &quot;diskSizeGB&quot;: &quot;[parameters(&#39;machineSettings&#39;).dataDiskSize]&quot;,
+              &quot;lun&quot;: 3,
+              &quot;caching&quot;: &quot;None&quot;,
+              &quot;createOption&quot;: &quot;Empty&quot;,
+              &quot;vhd&quot;: {
+                &quot;Uri&quot;: &quot;[concat(&#39;http://&#39;, parameters(&#39;storageAccountName&#39;), &#39;.blob.core.windows.net/&#39;,variables(&#39;vmStorageAccountContainerName&#39;),&#39;/&#39;, parameters(&#39;machineSettings&#39;).machineNamePrefix, parameters(&#39;nodeId&#39;) ,&#39;dataDisk3&#39;,&#39;.vhd&#39;)]&quot;
+              }
+            }
+          ]
+        },
+        &quot;networkProfile&quot;: {
+          &quot;networkInterfaces&quot;: [
+            {
+              &quot;id&quot;: &quot;[resourceId(&#39;Microsoft.Network/networkInterfaces&#39;,concat(&#39;nic&#39;, parameters(&#39;nodeId&#39;)))]&quot;
+            }
+          ]
+        }
+      }
+    },</code></pre>
+
+<h3 id="toc_22"><a href="https://github.com/martinesmann/couchbase-azure/blob/master/src/templates/cluster-nodes-A6.json">cluster-nodes-A6.json</a></h3>
+
+<p>Partial ARM template for configuration using the A6 VM&#39;s, the same as A2.</p>
+
+<h3 id="toc_23"><a href="https://github.com/martinesmann/couchbase-azure/blob/master/src/templates/cluster-nodes-D14.json">cluster-nodes-D14.json</a></h3>
+
+<p>Partial ARM template for configuration using the D14 VM&#39;s, the same as A2.</p>
+
+<h3 id="toc_24"><a href="https://github.com/martinesmann/couchbase-azure/blob/master/src/templates/couchbase-azure-install.sh">couchbase-azure-install.sh</a></h3>
+
+<p>This shell script is downloaded to download the virtual machines and does alle the work needed to install Couchbase Server on the nodes and setting up the Cluster. </p>
+
+<p>The last part of the script is responsible for configuring the cluster. If you would like to set-up a <code>bucket</code> this is the place to add the command line.</p>
+
+<pre><code class="language-none">if [ &quot;$IS_LAST_NODE&quot; -eq 1 ]; then
+    log &quot;sleep for 4 minutes to wait for the environment to stabilize&quot;
+    sleep 4m
+
+    log &quot;Initializing the first node of the cluster on ${MY_IP}.&quot;
+    /opt/couchbase/bin/couchbase-cli node-init -c &quot;$MY_IP&quot;:8091 -u &quot;${ADMINISTRATOR}&quot; -p &quot;${PASSWORD}&quot; --node-init-data-path=&quot;${COUCHBASE_DATA}&quot; --node-init-index-path=&quot;${COUCHBASE_DATA}&quot;
+    log &quot;Setting up cluster&quot;
+    /opt/couchbase/bin/couchbase-cli cluster-init -c &quot;$MY_IP&quot;:8091  -u &quot;${ADMINISTRATOR}&quot; -p &quot;${PASSWORD}&quot; --cluster-ramsize=&quot;${RAM_FOR_COUCHBASE}&quot; --cluster-index-ramsize=256 --services=data,index,query
+    log &quot;Setting autofailover&quot;
+    /opt/couchbase/bin/couchbase-cli setting-autofailover  -c &quot;$MY_IP&quot;:8091  -u &quot;${ADMINISTRATOR}&quot; -p &quot;${PASSWORD}&quot; --enable-auto-failover=1 --auto-failover-timeout=30
+
+    for (( i = 0; i &lt; ${#MEMBER_IP_ADDRESSES[@]}; i++ )); do
+        log &quot;Adding node ${MEMBER_IP_ADDRESSES[$i]} to cluster&quot;
+        /opt/couchbase/bin/couchbase-cli server-add -c &quot;$MY_IP&quot;:8091 -u &quot;${ADMINISTRATOR}&quot; -p &quot;${PASSWORD}&quot; --server-add=&quot;${MEMBER_IP_ADDRESSES[$i]}&quot;:8091 --server-add-username=&quot;${ADMINISTRATOR}&quot; --server-add-password=&quot;${PASSWORD}&quot; --services=data,index,query
+    done
+
+    log &quot;Reblancing the cluster&quot;
+    /opt/couchbase/bin/couchbase-cli rebalance -c &quot;$MY_IP&quot;:8091 -u &quot;${ADMINISTRATOR}&quot; -p &quot;${PASSWORD}&quot;
+    
+    /*OPTIONAL ADD LOGIC TO CONFIGURE A BUCKET*/
+fi
+log &quot;Install couchbase complete!&quot;</code></pre>
+
+<h3 id="toc_25"><a href="https://github.com/martinesmann/couchbase-azure/blob/master/src/templates/jumpbox-resources-disabled.json">jumpbox-resources-disabled.json</a></h3>
+
+<p>Shell script to use when jump box is disabled for the set-up.</p>
+
+<h3 id="toc_26"><a href="https://github.com/martinesmann/couchbase-azure/blob/master/src/templates/jumpbox-resources-enabled.json">jumpbox-resources-enabled.json</a></h3>
+
+<p>Shell script for setting up the jump box machine. </p>
+
+<h3 id="toc_27"><a href="https://github.com/martinesmann/couchbase-azure/blob/master/src/templates/metadata.json">metadata.json</a></h3>
+
+<p>File used to keep track of changes, inherited from the original source at <a href="https://github.com/Azure/azure-quickstart-templates/tree/master/couchbase-on-ubuntu">couchbase-on-ubuntu</a>.</p>
+
+<h3 id="toc_28"><a href="https://github.com/martinesmann/couchbase-azure/blob/master/src/templates/shared-resources.json">shared-resources.json</a></h3>
+
+<p>Shared resource, inherited from the original source at <a href="https://github.com/Azure/azure-quickstart-templates/tree/master/couchbase-on-ubuntu">couchbase-on-ubuntu</a>.</p>
+
+<h3 id="toc_29"><a href="https://github.com/martinesmann/couchbase-azure/blob/master/src/templates/vm-disk-utils-0.1.sh">vm-disk-utils-0.1.sh</a></h3>
+
+<p>Linux disk util. </p>
+
+<h2 id="toc_30">Summery</h2>
+
+<p>In this blog post you learned about Azure Resource Manager (ARM) Templates and there usage. We also briefly touched on the specific details for the Couchbase ARM template and the various ways you can interact with Azure and deploy ARM templates.</p>
+
+<p>Happy Deploying!   </p>
+
+
+</body>
+
+</html>

@@ -296,22 +296,199 @@ The full source, templates and all dependencies can be found on GitHub, [couchba
 Navigating to the [templates folder](https://github.com/martinesmann/couchbase-azure/tree/master/src/templates), reveal eleven separate files:
 
 ###[azuredeploy.json](https://github.com/martinesmann/couchbase-azure/blob/master/src/templates/azuredeploy.json)
-The main entry point for the ARM template.
+The main entry point for the ARM template. This template defines all the parameters and variables that are used in the template. All resources from network nic's to virtual machine sizes are specified within this file:
+
+This snippet, defines the properties for "t-shirt size medium".
+```
+"tshirtSizeMedium": {
+      "storageAccountCount": 1,
+      "clusterSizeMinusOne": 3,
+      "lastNodeId": 3,
+      "clusterSize": 4,
+      "couchbaseRamQuota": 22000,
+      "vmSize": "Standard_A6",
+      "maxNumberOfDataDisksForVmSizeNotUsedButHereForReference": 8,
+      "vmTemplate": "[concat(variables('templateBaseUrl'), 'cluster-nodes-A6.json')]",
+      "backendIPConfigurations": [
+        {
+          "id": "[concat(resourceId('Microsoft.Network/networkInterfaces',  'nic0'),'/ipConfigurations/ipconfig1')]"
+        },
+        {
+          "id": "[concat(resourceId('Microsoft.Network/networkInterfaces',  'nic1'),'/ipConfigurations/ipconfig1')]"
+        },
+        {
+          "id": "[concat(resourceId('Microsoft.Network/networkInterfaces',  'nic2'),'/ipConfigurations/ipconfig1')]"
+        },
+        {
+          "id": "[concat(resourceId('Microsoft.Network/networkInterfaces',  'nic3'),'/ipConfigurations/ipconfig1')]"
+        }
+      ]
+    },
+```
+
+You can browse through the file to get a better idea of the structure and how things are configured.
 
 ###[azuredeploy.parameters.json](https://github.com/martinesmann/couchbase-azure/blob/master/src/templates/azuredeploy.parameters.json)
-Predefined default parameters.
+This file contains all the pre-defined default parameters for the template. This file is not mandatory but a great when starting a deployment.
+
+```
+{
+  "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "adminUsername": {
+      "value": "couchadmin"
+    },
+    "adminPassword": {
+      "value": "P@ssword1"
+    },
+    "tshirtSize": {
+      "value": "Small"
+    },
+    "storageAccountNamePrefix": {
+      "value": "f180cbdply92"
+    },
+    "region": {
+      "value": "East Asia"
+    },
+    "virtualNetworkName": {
+      "value": "couchVnet"
+    },
+    "clusterName": {
+      "value": "couchbasefs180"
+    },
+    "jumpbox": {
+      "value": "enabled"
+    }
+  }
+}
+```
+
+If you would like to change the password then this is the place to do it.
 
 ###[cluster-nodes-A2.json](https://github.com/martinesmann/couchbase-azure/blob/master/src/templates/cluster-nodes-A2.json)
-Partial ARM template for configuration using the A2 VM's.
+Partial ARM template for configuration using the A2 VM's. This is also the file that configures the actual virtual machine resource, network, disks etc.
+
+```
+{
+      "apiVersion": "2015-05-01-preview",
+      "type": "Microsoft.Compute/virtualMachines",
+      "name": "[concat(parameters('machineSettings').machineNamePrefix, parameters('nodeId'))]",
+      "location": "[parameters('commonSettings').region]",
+      "dependsOn": [
+        "[concat('Microsoft.Network/networkInterfaces/', 'nic', parameters('nodeId'))]"
+      ],
+      "properties": {
+        "availabilitySet": {
+          "id": "[resourceId('Microsoft.Compute/availabilitySets', parameters('commonSettings').availabilitySet)]"
+        },
+        "hardwareProfile": {
+          "vmSize": "[parameters('vmSize')]"
+        },
+        "osProfile": {
+          "computerName": "[concat(parameters('machineSettings').machineNamePrefix, parameters('nodeId'))]",
+          "adminUsername": "[parameters('machineSettings').adminUsername]",
+          "adminPassword": "[parameters('machineSettings').adminPassword]"
+        },
+        "storageProfile": {
+          "imageReference": "[parameters('machineSettings').imageReference]",
+          "osDisk": {
+            "name": "osdisk",
+            "vhd": {
+              "uri": "[concat('http://', parameters('storageAccountName'), '.blob.core.windows.net/',variables('vmStorageAccountContainerName'),'/', parameters('machineSettings').machineNamePrefix, parameters('nodeId'),'os-disk.vhd')]"
+            },
+            "caching": "ReadWrite",
+            "createOption": "FromImage"
+          },
+          "dataDisks": [
+            {
+              "name": "datadisk0",
+              "diskSizeGB": "[parameters('machineSettings').dataDiskSize]",
+              "lun": 0,
+              "caching": "None",
+              "createOption": "Empty",
+              "vhd": {
+                "Uri": "[concat('http://', parameters('storageAccountName'), '.blob.core.windows.net/',variables('vmStorageAccountContainerName'),'/', parameters('machineSettings').machineNamePrefix, parameters('nodeId'),'dataDisk0' ,'.vhd')]"
+              }
+            },
+            {
+              "name": "datadisk1",
+              "diskSizeGB": "[parameters('machineSettings').dataDiskSize]",
+              "lun": 1,
+              "caching": "None",
+              "createOption": "Empty",
+              "vhd": {
+                "Uri": "[concat('http://', parameters('storageAccountName'), '.blob.core.windows.net/',variables('vmStorageAccountContainerName'),'/', parameters('machineSettings').machineNamePrefix, parameters('nodeId') ,'dataDisk1','.vhd')]"
+              }
+            },
+            {
+              "name": "datadisk2",
+              "diskSizeGB": "[parameters('machineSettings').dataDiskSize]",
+              "lun": 2,
+              "caching": "None",
+              "createOption": "Empty",
+              "vhd": {
+                "Uri": "[concat('http://', parameters('storageAccountName'), '.blob.core.windows.net/',variables('vmStorageAccountContainerName'),'/', parameters('machineSettings').machineNamePrefix, parameters('nodeId') ,'dataDisk2','.vhd')]"
+              }
+            },
+            {
+              "name": "datadisk3",
+              "diskSizeGB": "[parameters('machineSettings').dataDiskSize]",
+              "lun": 3,
+              "caching": "None",
+              "createOption": "Empty",
+              "vhd": {
+                "Uri": "[concat('http://', parameters('storageAccountName'), '.blob.core.windows.net/',variables('vmStorageAccountContainerName'),'/', parameters('machineSettings').machineNamePrefix, parameters('nodeId') ,'dataDisk3','.vhd')]"
+              }
+            }
+          ]
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat('nic', parameters('nodeId')))]"
+            }
+          ]
+        }
+      }
+    },
+```
 
 ###[cluster-nodes-A6.json](https://github.com/martinesmann/couchbase-azure/blob/master/src/templates/cluster-nodes-A6.json)
-Partial ARM template for configuration using the A6 VM's.
+Partial ARM template for configuration using the A6 VM's, the same as A2.
 
 ###[cluster-nodes-D14.json](https://github.com/martinesmann/couchbase-azure/blob/master/src/templates/cluster-nodes-D14.json)
-Partial ARM template for configuration using the D14 VM's. 
+Partial ARM template for configuration using the D14 VM's, the same as A2.
 
 ###[couchbase-azure-install.sh](https://github.com/martinesmann/couchbase-azure/blob/master/src/templates/couchbase-azure-install.sh)
-Shell script to download and install Couchbase Server on the nodes and setting up the Cluster.
+This shell script is downloaded to download the virtual machines and does alle the work needed to install Couchbase Server on the nodes and setting up the Cluster. 
+
+The last part of the script is responsible for configuring the cluster. If you would like to set-up a `bucket` this is the place to add the command line.
+
+```
+if [ "$IS_LAST_NODE" -eq 1 ]; then
+	log "sleep for 4 minutes to wait for the environment to stabilize"
+	sleep 4m
+
+	log "Initializing the first node of the cluster on ${MY_IP}."
+	/opt/couchbase/bin/couchbase-cli node-init -c "$MY_IP":8091 -u "${ADMINISTRATOR}" -p "${PASSWORD}" --node-init-data-path="${COUCHBASE_DATA}" --node-init-index-path="${COUCHBASE_DATA}"
+	log "Setting up cluster"
+	/opt/couchbase/bin/couchbase-cli cluster-init -c "$MY_IP":8091  -u "${ADMINISTRATOR}" -p "${PASSWORD}" --cluster-ramsize="${RAM_FOR_COUCHBASE}" --cluster-index-ramsize=256 --services=data,index,query
+    log "Setting autofailover"
+	/opt/couchbase/bin/couchbase-cli setting-autofailover  -c "$MY_IP":8091  -u "${ADMINISTRATOR}" -p "${PASSWORD}" --enable-auto-failover=1 --auto-failover-timeout=30
+
+	for (( i = 0; i < ${#MEMBER_IP_ADDRESSES[@]}; i++ )); do
+		log "Adding node ${MEMBER_IP_ADDRESSES[$i]} to cluster"
+		/opt/couchbase/bin/couchbase-cli server-add -c "$MY_IP":8091 -u "${ADMINISTRATOR}" -p "${PASSWORD}" --server-add="${MEMBER_IP_ADDRESSES[$i]}":8091 --server-add-username="${ADMINISTRATOR}" --server-add-password="${PASSWORD}" --services=data,index,query
+	done
+
+	log "Reblancing the cluster"
+	/opt/couchbase/bin/couchbase-cli rebalance -c "$MY_IP":8091 -u "${ADMINISTRATOR}" -p "${PASSWORD}"
+	
+	/*OPTIONAL ADD LOGIC TO CONFIGURE A BUCKET*/
+fi
+log "Install couchbase complete!"
+```
 
 ###[jumpbox-resources-disabled.json](https://github.com/martinesmann/couchbase-azure/blob/master/src/templates/jumpbox-resources-disabled.json)
 Shell script to use when jump box is disabled for the set-up.
@@ -330,6 +507,8 @@ Shared resource, inherited from the original source at [couchbase-on-ubuntu](htt
 Linux disk util. 
 
 
+##Summery
+In this blog post you learned about Azure Resource Manager (ARM) Templates and there usage. We also briefly touched on the specific details for the Couchbase ARM template and the various ways you can interact with Azure and deploy ARM templates.
 
-   
+Happy Deploying!   
 
